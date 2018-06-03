@@ -7,7 +7,9 @@ import unittest
 # 1 = human play
 # 2 = block
 # 3 = win
-skip = [0, 2, 3]
+# 4 = block2
+# skip = [0, 1, 2, 3]
+skip = [0, 1]
 
 
 class TestTTT(unittest.TestCase):
@@ -26,7 +28,6 @@ class TestTTT(unittest.TestCase):
                 mcts.board.print(state)
                 mcts.make_move(move)
             self.assertEqual(mcts.board.ending_state(state), -1)
-
 
     def test_play_mcts(self):
         if 1 in skip:
@@ -107,6 +108,36 @@ class TestTTT(unittest.TestCase):
             mcts.board.print(state)
 
             # self.assertEqual(move, (0, 2))
+
+    def test_lost_block(self):
+        if 4 in skip:
+            print("Skipping lost block")
+            return
+        ttt = TTT()
+        state = ttt.get_initial_state()
+        state = ttt.get_state(state, (1, 1))
+        state = ttt.get_state(state, (2, 0))
+        state = ttt.get_state(state, (0, 1))
+        print("Testing simple block (that was lost before) on the following board")
+        ttt.print(state)
+        for _ in range(5):
+            mcts = MCTS(ttt)
+            mcts.set_root_state(state)
+            while not mcts.board.ending_state(state):
+                move = mcts.search()
+                state = mcts.board.get_state(state, move)
+                mcts.board.print(state)
+                mcts.make_move(move)
+            mcts.board.print(state)
+            # move = mcts.search()
+            # mcts.make_move(move)
+            # state = mcts.board.get_state(state, move)
+            # mcts.board.print(state)
+            # self.assertEqual(move, (2, 1))
+
+
+
+
 
     def test_trick_win(self):
         pass

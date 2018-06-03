@@ -76,6 +76,7 @@ class MCTS(object):
         except SimulationComplete as sc:
             print(sc)
 
+        self.simulations = 0
         return self.find_move()
 
     def find_move(self):
