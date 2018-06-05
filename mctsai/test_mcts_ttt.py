@@ -1,14 +1,7 @@
 from board.ttt import TTT
-from mctsai.mcts import Node
 from mctsai.mcts import MCTS
 import unittest
 
-# 0 = self play
-# 1 = human play
-# 2 = block
-# 3 = win
-# 4 = block2
-# skip = [0, 1, 2, 3]
 skip = [0, 1]
 
 
@@ -54,90 +47,32 @@ class TestTTT(unittest.TestCase):
             # mcts.root.state = state
             # mcts.root.remaining_moves = mcts.board.get_legal_moves(mcts.root.state)
 
-    def test_selection(self):
-        pass
+    def test_positions(self):
+        # simple block
+        move_sequence = [(1, 1), (2, 0), (0, 1)]
+        self.from_position(move_sequence, (2, 1), "Simple block 1")
 
-    def test_playout(self):
-        pass
+        # simple block 2
+        move_sequence = [(1, 1), (2, 2), (2, 1)]
+        self.from_position(move_sequence, (0, 1), "Simple block 2")
 
-    def test_back_prop(self):
-        pass
+        # simple win 1
+        move_sequence = [(1, 1), (2, 2), (2, 0), (0, 2), (1, 2), (2, 1)]
+        self.from_position(move_sequence, (1, 0), "Simple win")
 
-    def test_expand(self):
-        pass
-
-    def test_block(self):
-        if 2 in skip:
-            print("Skipping test simple block")
-            return
+    def from_position(self, move_sequence, expected_move, name):
         ttt = TTT()
-        state = ttt.get_initial_state()
-        state = ttt.get_state(state, (1, 1))
-        state = ttt.get_state(state, (2, 2))
-        state = ttt.get_state(state, (2, 0))
-        print("Testing simple block on the following board")
-        ttt.print(state)
-        for _ in range(1):
-            mcts = MCTS(ttt)
-            mcts.set_root_state(state)
-            move = mcts.search()
-            self.assertEqual(move, (0, 2))
+        mcts = MCTS(ttt, searchtime=10)
+        mcts.board.print(mcts.root.state)
+        for move in move_sequence:
+            mcts.search()
+            mcts.make_move(move)
+            mcts.board.print(mcts.root.state)
 
-    def test_simple_win(self):
-        if 3 in skip:
-            print("Skipping test simple win")
-            return
-        ttt = TTT()
-        state = ttt.get_initial_state()
-        state = ttt.get_state(state, (1, 1))
-        state = ttt.get_state(state, (2, 2))
-        state = ttt.get_state(state, (2, 0))
-        state = ttt.get_state(state, (0, 2))
-        state = ttt.get_state(state, (1, 2))
-        state = ttt.get_state(state, (2, 1))
-        print("Testing simple win on the following board")
-        ttt.print(state)
-        for _ in range(10):
-            mcts = MCTS(ttt)
-            mcts.set_root_state(state)
-            while not mcts.board.ending_state(state):
-                move = mcts.search()
-                state = mcts.board.get_state(state, move)
-                mcts.board.print(state)
-                mcts.make_move(move)
-            mcts.board.print(state)
+        move = mcts.search()
 
-            # self.assertEqual(move, (0, 2))
-
-    def test_lost_block(self):
-        if 4 in skip:
-            print("Skipping lost block")
-            return
-        ttt = TTT()
-        state = ttt.get_initial_state()
-        state = ttt.get_state(state, (1, 1))
-        state = ttt.get_state(state, (2, 0))
-        state = ttt.get_state(state, (0, 1))
-        print("Testing simple block (that was lost before) on the following board")
-        ttt.print(state)
-        for _ in range(5):
-            mcts = MCTS(ttt)
-            mcts.set_root_state(state)
-            while not mcts.board.ending_state(state):
-                move = mcts.search()
-                state = mcts.board.get_state(state, move)
-                mcts.board.print(state)
-                mcts.make_move(move)
-            mcts.board.print(state)
-            # move = mcts.search()
-            # mcts.make_move(move)
-            # state = mcts.board.get_state(state, move)
-            # mcts.board.print(state)
-            # self.assertEqual(move, (2, 1))
-
-
-
-
+        print("Testing {} block (that was lost before) on the following board".format(name))
+        self.assertEqual(move, expected_move)
 
     def test_trick_win(self):
         pass

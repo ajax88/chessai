@@ -18,6 +18,14 @@ class Node(object):
         self.wins += result
         self.total_visits += 1
 
+    def child_ucb1(self):
+        r = list(filter(lambda c: not c.visited, self.children))
+        return max(r, key=lambda c: (c.wins / c.total_visits) + math.sqrt(2) * math.sqrt(math.log(self.total_visits) / c.total_visits))
+
+    # used as value function for move selection after simulations
+    def eval(self):
+        return self.total_visits
+
 
 class MCTS(object):
     def __init__(self, board, **kwargs):
@@ -30,7 +38,7 @@ class MCTS(object):
         self.stime = datetime.timedelta(seconds=kwargs.get('searchtime', 30))
 
     def simulate(self):
-        best_child = self.selection(self.root, True)
+        best_child = self.selection(self.root)
         new_discovered_node = self.expand(best_child)
         result = self.playout(new_discovered_node)
         self.back_propagate(result, new_discovered_node)
@@ -80,36 +88,32 @@ class MCTS(object):
         return self.find_move()
 
     def find_move(self):
-        max_node = max(self.root.children, key=lambda node: (node.total_visits - node.wins) / node.total_visits)
+        max_node = max(self.root.children, key=lambda node: node.eval())
         return max_node.from_action
 
-    def selection(self, node, flip_wins):
+    def selection(self, node):
         curr = node
         if curr.remaining_moves:
             return curr
 
         if self.board.ending_state(curr.state):
             curr.visited = True
-            return self.selection(curr.parent, not flip_wins)
+            return self.selection(curr.parent)
 
         available_paths = list(filter(lambda n: not n.visited, curr.children))
         if not available_paths:
             curr.visited = True
             if curr.parent is None: # root
                 raise SimulationComplete("All paths explored")
-            return self.selection(curr.parent, not flip_wins)
+            return self.selection(curr.parent)
 
-        total_sim = curr.total_visits
-        curr = max(available_paths, key=lambda child: self.ucb1(child, total_sim, flip_wins))
-        return self.selection(curr, not flip_wins)
+        curr = curr.child_ucb1()
+        return self.selection(curr)
 
-    def ucb1(self, node, total_sim, flip_wins=True):
+    def ucb1(self, node):
         # wins = node.wins if not flip_wins else node.total_visits - node.wins
-        #TODO Verify this.
         wins = node.total_visits - node.wins
         total_visits = node.total_visits
-        # TODO: is this right??
-        total_sim = self.simulations
         return (wins / total_visits) + math.sqrt(2) * math.sqrt(math.log(total_sim, math.e) / total_visits)
 
     def sample_action(self, state):
