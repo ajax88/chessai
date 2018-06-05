@@ -18,13 +18,6 @@ class Node(object):
         self.wins += result
         self.total_visits += 1
 
-    def ucb1_child(self):
-        return max(self.children, key=lambda c: (c.wins / c.total_visits) + math.sqrt(2) * math.sqrt(math.log(self.total_visits) / c.total_visits))
-
-    # Used as a value function for best move once simulation is complete
-    def eval(self):
-        return (self.total_visits - self.wins) / self.total_visits
-
 
 class MCTS(object):
     def __init__(self, board, **kwargs):
@@ -37,21 +30,16 @@ class MCTS(object):
         self.stime = datetime.timedelta(seconds=kwargs.get('searchtime', 30))
 
     def simulate(self):
-        best_child = self.select()
-        if best_child.remaining_moves:
-            new_discovered_node = self.expand(best_child)
-            result = self.playout(new_discovered_node)
-            self.back_propagate(result, new_discovered_node)
+        best_child = self.selection(self.root, True)
+        new_discovered_node = self.expand(best_child)
+        result = self.playout(new_discovered_node)
+        self.back_propagate(result, new_discovered_node)
 
     def back_propagate(self, result, node):
         cp_node = node
         while cp_node:
             cp_node.update(result)
-            if result == 1:
-                result = 0
-            elif result == 0:
-                result = 1
-            # result *= -1 # switch result based on change of player... decay old results?
+            result *= -1 # switch result based on change of player... decay old results?
             cp_node = cp_node.parent
 
     def playout(self, node):
@@ -63,55 +51,66 @@ class MCTS(object):
 
         # if result is 1, the opposite player of the current state has won
         if self.board.ending_state(state) == 1:
-            return 1 if start_player != state[1] else 0
-        return 0.5
+            return 1 if start_player != state[1] else -1
+        return 0
 
     def expand(self, node):
         curr_state = node.state
+        random.shuffle(node.remaining_moves)
         action = node.remaining_moves.pop()
         new_state = self.board.get_state(curr_state, action)
         new_node = Node(from_action=action, state=new_state, remaining_moves=self.board.get_legal_moves(new_state), parent=node)
-        random.shuffle(new_node.remaining_moves)
         node.children.append(new_node)
         return new_node
 
     def search(self):
         end_time = datetime.datetime.now() + self.stime
         print("Starting MCTS search...")
-        search_count = 0
         try:
             while datetime.datetime.now() < end_time:
                 self.simulate()
                 self.simulations += 1
-                search_count += 1
-                if search_count % 5000 == 0:
-                    print("Searching{}".format("." * (search_count // 5000)))
-            print("Search time complete. {} simulations ran.".format(search_count))
+                if self.simulations % 5000 == 0:
+                    print("Searching{}".format("." * (self.simulations // 5000)))
+            print("Search time complete. {} simulations ran.".format(self.simulations))
         except SimulationComplete as sc:
             print(sc)
 
+        self.simulations = 0
         return self.find_move()
 
     def find_move(self):
-        max_node = max(self.root.children, key=lambda node: node.eval())
+        max_node = max(self.root.children, key=lambda node: (node.total_visits - node.wins) / node.total_visits)
         return max_node.from_action
 
-    def select(self):
-        curr = self.root
-        while not curr.remaining_moves: # while fully expanded
-            if self.board.ending_state(curr.state):
-                curr.visited = True
-                break
+    def selection(self, node, flip_wins):
+        curr = node
+        if curr.remaining_moves:
+            return curr
 
-            available_paths = list(filter(lambda n: not n.visited, curr.children))
-            if not available_paths:
-                curr.visited = True
-                if curr.parent is None: # root
-                    raise SimulationComplete("All paths explored")
-                break
+        if self.board.ending_state(curr.state):
+            curr.visited = True
+            return self.selection(curr.parent, not flip_wins)
 
-            curr = curr.ucb1_child()
-        return curr
+        available_paths = list(filter(lambda n: not n.visited, curr.children))
+        if not available_paths:
+            curr.visited = True
+            if curr.parent is None: # root
+                raise SimulationComplete("All paths explored")
+            return self.selection(curr.parent, not flip_wins)
+
+        total_sim = curr.total_visits
+        curr = max(available_paths, key=lambda child: self.ucb1(child, total_sim, flip_wins))
+        return self.selection(curr, not flip_wins)
+
+    def ucb1(self, node, total_sim, flip_wins=True):
+        # wins = node.wins if not flip_wins else node.total_visits - node.wins
+        #TODO Verify this.
+        wins = node.total_visits - node.wins
+        total_visits = node.total_visits
+        # TODO: is this right??
+        total_sim = self.simulations
+        return (wins / total_visits) + math.sqrt(2) * math.sqrt(math.log(total_sim, math.e) / total_visits)
 
     def sample_action(self, state):
         legal_moves = self.board.get_legal_moves(state)
@@ -131,3 +130,6 @@ class MCTS(object):
 
 class SimulationComplete(Exception):
     pass
+
+## TODO : QUESTIONS TO ADDRESS ... is it right to flip wins...? maybe use negative
+## TODO : UCB may be wrong. total wins? not parent?
