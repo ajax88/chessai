@@ -8,7 +8,7 @@ import unittest
 # 2 = block
 # 3 = win
 # 4 = block2
-# skip = [0, 1, 2, 3]
+# skip = [0, 2, 3, 4]
 skip = [0, 1]
 
 
@@ -77,8 +77,8 @@ class TestTTT(unittest.TestCase):
         state = ttt.get_state(state, (2, 0))
         print("Testing simple block on the following board")
         ttt.print(state)
-        for _ in range(1):
-            mcts = MCTS(ttt)
+        for _ in range(10):
+            mcts = MCTS(ttt, searchtime=10)
             mcts.set_root_state(state)
             move = mcts.search()
             self.assertEqual(move, (0, 2))
