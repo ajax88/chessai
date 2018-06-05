@@ -2,8 +2,9 @@ from board.ttt import TTT
 from mctsai.mcts import MCTS
 import unittest
 
-skip = [0, 1]
+# skip = [0, 1]
 
+skip = [0]
 
 class TestTTT(unittest.TestCase):
     def test_mcts(self):
@@ -50,19 +51,19 @@ class TestTTT(unittest.TestCase):
     def test_positions(self):
         # simple block
         move_sequence = [(1, 1), (2, 0), (0, 1)]
-        self.from_position(move_sequence, (2, 1), "Simple block 1")
+        # self.from_position(move_sequence, (2, 1), "Simple block 1")
 
         # simple block 2
         move_sequence = [(1, 1), (2, 2), (2, 1)]
-        self.from_position(move_sequence, (0, 1), "Simple block 2")
+        # self.from_position(move_sequence, (0, 1), "Simple block 2")
 
         # simple win 1
         move_sequence = [(1, 1), (2, 2), (2, 0), (0, 2), (1, 2), (2, 1)]
-        self.from_position(move_sequence, (1, 0), "Simple win")
+        # self.from_position(move_sequence, (1, 0), "Simple win")
 
     def from_position(self, move_sequence, expected_move, name):
         ttt = TTT()
-        mcts = MCTS(ttt, searchtime=10)
+        mcts = MCTS(ttt, searchtime= 30)
         mcts.board.print(mcts.root.state)
         for move in move_sequence:
             mcts.search()
