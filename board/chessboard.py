@@ -77,12 +77,16 @@ class ChessBoard(Board):
         return BLACK_PLAYER if player == WHITE_PLAYER else WHITE_PLAYER
 
     def can_move(self, reduced_state, s_row, s_col, e_row, e_col):
+        _, board, player, _ = reduced_state
         if self.is_blocked(reduced_state, s_row, s_col, e_row, e_col):
             return False
-        prev_board, board, player, can_castle = reduced_state
 
-    def is_blocked(self, reduced_state, s_row, s_col, e_row, e_col):
-        _, board, player, _ = reduced_state
+        cb = self.copy_board(board)
+        cb[e_row][e_col] = cb[s_row][s_col]
+        cb[s_row][s_col] = EMPTY_SQUARE
+        return self.king_in_check(cb, player)
+
+    def is_blocked(self, board, player, s_row, s_col, e_row, e_col):
         squares = [(row, col) for (row, col) in self.generate_inbetween_squares(s_row, s_col, e_row, e_col)]
         for i in range(len(squares)):
             r, c = squares[i]
@@ -100,8 +104,22 @@ class ChessBoard(Board):
     def copy_board(self, board):
         return [[board[i][j] for j in range(8)] for i in range(8)]
 
-    def king_in_check(self, state):
-        pass
+    def king_in_check(self, board, player):
+        pos = []
+        king_pos = None
+        for i in range(8):
+            for j in range(8):
+                p_player = self.get_player_of_piece(board, i, j)
+                p = board[i][j]
+                if p_player is player and p[1] is KING:
+                    king_pos = (i, j)
+                if p_player is self.get_other_player(player):
+                    pos.append((i, j))
+
+        for p in pos:
+            if not self.is_blocked(board, self.get_other_player(player), *p, *king_pos):
+                return True
+        return False
 
     def get_player_of_piece(self, board, row, col):
         p = board[row][col]
