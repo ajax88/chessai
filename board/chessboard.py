@@ -165,15 +165,17 @@ class ChessBoard(Board):
             for j in range(-1, 2, 2):
                 e_row = row + i
                 e_col = col + j
-                if self.in_bounds(e_row, e_col) and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
+                if self.in_bounds(e_row, e_col):
                     p = board[e_row][e_col]
-                    if p == EMPTY_SQUARE or player != self.get_player_of_piece(board, e_row, e_col):
+                    if (p == EMPTY_SQUARE or player != self.get_player_of_piece(board, e_row, e_col)) \
+                            and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
                         knight_moves.append((row, col, e_row, e_col))
                 e_row = row + j
                 e_col = col + i
-                if self.in_bounds(e_row, e_col) and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
+                if self.in_bounds(e_row, e_col):
                     p = board[e_row][e_col]
-                    if p == EMPTY_SQUARE or player != self.get_player_of_piece(board, e_row, e_col):
+                    if (p == EMPTY_SQUARE or player != self.get_player_of_piece(board, e_row, e_col)) \
+                            and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
                         knight_moves.append((row, col, e_row, e_col))
 
         return knight_moves
@@ -186,13 +188,13 @@ class ChessBoard(Board):
                 e_row, e_col = row + i, col - i
                 if self.in_bounds(e_row, e_col):
                     if not self.is_blocked(board, player, (row, col, e_row, e_col)) \
-                            and not self.will_cause_check(board, player, (row, col, e_row, col)):
+                            and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
                         bishop_moves.append((row, col, e_row, e_col))
                 # diag 'negative' slope
                 e_row, e_col = row + i, col + i
                 if self.in_bounds(e_row, e_col):
                     if not self.is_blocked(board, player, (row, col, e_row, e_col)) \
-                            and not self.will_cause_check(board, player, (row, col, e_row, col)):
+                            and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
                         bishop_moves.append((row, col, e_row, e_col))
         return bishop_moves
 
@@ -204,13 +206,13 @@ class ChessBoard(Board):
                 e_row, e_col = row, col + i
                 if self.in_bounds(e_row, e_col):
                     if not self.is_blocked(board, player, (row, col, e_row, e_col)) \
-                            and not self.will_cause_check(board, player, (row, col, e_row, col)):
+                            and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
                         rook_moves.append((row, col, e_row, e_col))
                 # vertical
                 e_row, e_col = row + i, col
                 if self.in_bounds(e_row, e_col):
                     if not self.is_blocked(board, player, (row, col, e_row, e_col)) \
-                            and not self.will_cause_check(board, player, (row, col, e_row, col)):
+                            and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
                         rook_moves.append((row, col, e_row, e_col))
         return rook_moves
 
@@ -222,13 +224,13 @@ class ChessBoard(Board):
                 e_row, e_col = row + i, col - i
                 if self.in_bounds(e_row, e_col):
                     if not self.is_blocked(board, player, (row, col, e_row, e_col)) \
-                            and not self.will_cause_check(board, player, (row, col, e_row, col)):
+                            and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
                         queen_moves.append((row, col, e_row, e_col))
                 # diag 'negative' slope
                 e_row, e_col = row + i, col + i
                 if self.in_bounds(e_row, e_col):
                     if not self.is_blocked(board, player, (row, col, e_row, e_col)) \
-                            and not self.will_cause_check(board, player, (row, col, e_row, col)):
+                            and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
                         queen_moves.append((row, col, e_row, e_col))
                 # horizontal
                 e_row, e_col = row, col + i

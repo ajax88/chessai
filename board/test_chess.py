@@ -84,6 +84,25 @@ class TestTTT(unittest.TestCase):
         state = chess_board.get_state(state, (4, 3, 5, 2))
         chess_board.print(state)
 
+    def test_prevent_checkmate(self):
+        state = chess_board.get_initial_state()
+        move_seq = [(7, 1, 5, 2), (0, 1, 2, 2), (5, 2, 3, 3), (2, 2, 4, 3)]
+        state = recreate_state(state, move_seq)
+        chess_board.print(state)
+
+        state = chess_board.get_state(state, (3, 3, 1, 2))
+        chess_board.print(state)
+        print("Legal moves: \n{}".format(chess_board.get_legal_moves(state)))
+
+    def test_katie_bug(self):
+        state = chess_board.get_initial_state()
+        move_seq = [(6, 3, 4, 3), (1, 2, 3, 2), (4, 3, 3, 2), (0, 6, 2, 5)]
+        state = recreate_state(state, move_seq)
+        chess_board.print(state)
+
+        state = chess_board.get_state(state, (3, 2, 2, 2))
+        chess_board.print(state)
+        print("Legal moves: \n{}".format(chess_board.get_legal_moves(state)))
 
 
 def recreate_state(state, move_sequence):
