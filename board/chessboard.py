@@ -42,41 +42,45 @@ class ChessBoard(Board):
             if i == 4:
                 board[0][i] = BLACK_DENOTER + KING
                 board[7][i] = WHITE_DENOTER + KING
-        reduced_state = (None, board, WHITE_PLAYER, True, True, True, True)
-        # Prev board, current board, player, can castle, legal_moves
+        reduced_state = (None, board, WHITE_PLAYER, True, True, True, True, 0)
+        # Prev board, current board, player, 4* castles, no_progress, legal_moves
         legal_moves = self.generate_legal_moves(reduced_state)
 
         return reduced_state + (legal_moves,)
 
-    def get_state(self, state, action):
-        prev_board, curr_board, player, p1ck, p1cq, p2ck, p2cq, legal_moves = state
+    def get_player(self, state):
+        _, _, player, _, _, _, _, _, _ = state
+        return player
 
-        # check if action is in moves
-        # make action, do appropriate edge checks (e.g pawn promotion)
+    def get_state(self, state, action):
+        prev_board, curr_board, player, p1ck, p1cq, p2ck, p2cq, no_progress, legal_moves = state
+
         if action not in legal_moves:
             raise ValueError("Invalid move {}".format(action))
 
         new_prev = self.copy_board(curr_board)
         new_board = self.copy_board(curr_board)
-        r, c, e_r, e_c = action
-        new_board[e_r][e_c] = new_board[r][c]
-        new_board[r][c] = EMPTY_SQUARE
+        no_progress, p1ck, p1cq, p2ck, p2cq = self.handle_state_change(new_board, player, action, p1ck, p1cq, p2ck, p2cq, no_progress)
         # TODO update castling!!
         # TODO execute empassant (delete pawn above)
+        # TODO Pawn Promotion
+        # TODO Repetion.. Hash position (based on legal moves ?) and store count
 
         new_player = self.get_other_player(player)
-        reduced_state = (new_prev, new_board, new_player, p1ck, p1cq, p2ck, p2cq)
+        reduced_state = (new_prev, new_board, new_player, p1ck, p1cq, p2ck, p2cq, no_progress)
         legal_moves = self.generate_legal_moves(reduced_state)
 
         return reduced_state + (legal_moves,)
 
     def get_legal_moves(self, state):
-        _, _, _, _, _, _, _, legal_moves = state
+        _, _, _, _, _, _, _, _, legal_moves = state
         return legal_moves
 
     def ending_state(self, state):
-        _, curr_board, player, _, _, _, _, legal_moves = state
+        _, curr_board, player, _, _, _, _, no_progress, legal_moves = state
         if legal_moves:
+            if (no_progress / 2) >= 50:
+                return -1
             return 0
         if self.king_in_check(curr_board, player):
             return 1
@@ -86,8 +90,20 @@ class ChessBoard(Board):
     ####################################################################################################################
     #################################### METHODS TO GET LEGAL MOVES ####################################################
     ####################################################################################################################
+    def handle_state_change(self, new_board, player, move, p1ck, p1cq, p2ck, p2cq, no_progress):
+        r, c, e_r, e_c = move
+        if new_board[e_r][e_c] != EMPTY_SQUARE or new_board[r][c][1] == PAWN:
+            no_progress = 0
+        else:
+            no_progress += 1
+
+        new_board[e_r][e_c] = new_board[r][c]
+        new_board[r][c] = EMPTY_SQUARE
+
+        return no_progress, p1ck, p1cq, p2ck, p2cq
+
     def generate_legal_moves(self, reduced_state):
-        prev_board, curr_board, player, p1ck, p1cq, p2ck, p2cq = reduced_state
+        prev_board, curr_board, player, p1ck, p1cq, p2ck, p2cq, no_progress = reduced_state
         moves = []
         for i in range(8):
             for j in range(8):
@@ -119,23 +135,23 @@ class ChessBoard(Board):
         for i in range(-1, 2, 2):
             r = row + 1 + (-2 * is_white)
             c = col + i
-            if self.in_bounds(r, c) and not self.will_cause_check(board, player, (row, col, r, c)):
+            if self.in_bounds(r, c):
                     p = board[r][c]
-                    if (p != EMPTY_SQUARE and self.get_player_of_piece(board, r, c) != player) \
-                            or (self.is_empassant(prev_board, board, player, (row, col, r, c))):
-                        ## need to check empassant here
+                    if ((p != EMPTY_SQUARE and self.get_player_of_piece(board, r, c) != player) \
+                            or (self.is_empassant(prev_board, board, player, (row, col, r, c)))) \
+                            and not self.will_cause_check(board, player, (row, col, r, c)):
                         pawn_moves.append((row, col, r, c))
         # check single
         r = row + 1 + (-2 * is_white)
-        if self.in_bounds(r, col) and not self.will_cause_check(board, player, (row, col, r, col)):
+        if self.in_bounds(r, col):
             p = board[r][col]
-            if p == EMPTY_SQUARE:
+            if p == EMPTY_SQUARE and not self.will_cause_check(board, player, (row, col, r, col)):
                 pawn_moves.append((row, col, r, col))
 
         # check_double
         d_row = row + 2 + (-4 * is_white)
-        if can_double and not self.will_cause_check(board, player, (row, col, d_row, col)) \
-                and not self.is_blocked(board, player, (row, col, d_row, col)):
+        if can_double and not self.is_blocked(board, player, (row, col, d_row, col)) \
+                and not self.will_cause_check(board, player, (row, col, d_row, col)):
             p = board[d_row][col]
             if p == EMPTY_SQUARE:
                 pawn_moves.append((row, col, d_row, col))
@@ -254,7 +270,7 @@ class ChessBoard(Board):
                 e_row, e_col = row + i, col + j
                 if not (i == 0 and j == 0) and self.in_bounds(e_row, e_col):
                     if not self.is_blocked(board, player, (row, col, e_row, e_col)) \
-                            and self.will_cause_check(board, player, (row, col, e_row, e_col)):
+                            and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
                         king_moves.append((row, col, e_row, e_col))
         return king_moves
 
@@ -413,7 +429,7 @@ class ChessBoard(Board):
         return row < 8 and row >= 0 and col < 8 and col >=0
 
     def print(self, state):
-        _, board, player, _, _, _, _, legal_moves = state
+        _, board, player, _, _, _, _, _, legal_moves = state
         print("Player {}'s turn.\n".format(player))
         if self.debug:
             print('  0  1  2  3  4  5  6  7')

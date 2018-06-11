@@ -42,4 +42,4 @@ class ChessGame():
                 move_history.append(move)
                 state = chess_board.get_state(state, move)
         except ValueError:
-            print("Exception occurred. Move history:\n".format(move_history))
+            print("\n\n\n!!!!\n!!!!!!!Exception occurred.!!!!!!!\n!!!!\n\n Move history:\n".format(move_history))

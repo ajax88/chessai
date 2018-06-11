@@ -13,3 +13,6 @@ class Board(object):
 
     def ending_state(self, state):
         raise NotImplementedError
+
+    def get_player(self, state):
+        raise NotImplementedError
