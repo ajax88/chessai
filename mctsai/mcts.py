@@ -35,7 +35,7 @@ class MCTS(object):
         self.root = kwargs.get("root", Node())
         if not self.root.state:
             self.root.state = self.board.get_initial_state()
-        self.root.remaining_moves = self.board.get_legal_moves(self.root.state)
+        self.root.remaining_moves = self.board.get_legal_moves(self.root.state)[:]
         self.stime = datetime.timedelta(seconds=kwargs.get('searchtime', 30))
 
     def simulate(self):
@@ -58,21 +58,21 @@ class MCTS(object):
 
     def playout(self, node):
         state = node.state
-        start_player = state[1]
+        start_player = self.board.get_player(state)
         while not self.board.ending_state(state):
             action = self.sample_action(state)
             state = self.board.get_state(state, action)
 
         # if result is 1, the opposite player of the current state has won
         if self.board.ending_state(state) == 1:
-            return 1 if start_player != state[1] else -1
+            return 1 if start_player != self.board.get_player(state) else -1
         return 0
 
     def expand(self, node):
         curr_state = node.state
         action = node.remaining_moves.pop()
         new_state = self.board.get_state(curr_state, action)
-        new_node = Node(from_action=action, state=new_state, remaining_moves=self.board.get_legal_moves(new_state), parent=node)
+        new_node = Node(from_action=action, state=new_state, remaining_moves=self.board.get_legal_moves(new_state)[:], parent=node)
         random.shuffle(new_node.remaining_moves)
         node.children.append(new_node)
         return new_node
@@ -84,8 +84,8 @@ class MCTS(object):
             while datetime.datetime.now() < end_time:
                 self.simulate()
                 self.simulations += 1
-                if self.simulations % 5000 == 0:
-                    print("Searching{}".format("." * (self.simulations // 5000)))
+                if self.simulations % 10 == 0:
+                    print("Searching{}".format("." * (self.simulations // 10)))
             print("Search time complete. {} simulations ran.".format(self.simulations))
         except SimulationComplete as sc:
             print(sc)

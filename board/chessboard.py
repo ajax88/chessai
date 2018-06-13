@@ -97,9 +97,61 @@ class ChessBoard(Board):
         else:
             no_progress += 1
 
-        new_board[e_r][e_c] = new_board[r][c]
-        new_board[r][c] = EMPTY_SQUARE
+        is_white = player == WHITE_PLAYER
+        p = new_board[r][c]
+        if p[1] == PAWN:
+            if e_r == (7 * (not is_white)):
+                new_board[e_r][e_c] = (WHITE_DENOTER if is_white else BLACK_DENOTER) + QUEEN
+            else:
+                if e_c != c and new_board[e_r][e_c] == EMPTY_SQUARE: # empassant
+                    new_board[e_r - 1 + 2 * is_white][e_c] = EMPTY_SQUARE
+                new_board[e_r][e_c] = p
 
+        elif p[1] == KING:
+            #### change
+            if is_white:
+                if move == (7, 4, 7, 6):
+                    new_board[7][6] = p
+                    rook = new_board[7][7]
+                    new_board[7][5] = rook
+                    new_board[7][7] = EMPTY_SQUARE
+                elif move == (7, 4, 7, 2):
+                    new_board[7][2] = p
+                    rook = new_board[7][0]
+                    new_board[7][3] = rook
+                    new_board[7][0] = EMPTY_SQUARE
+                else:
+                    new_board[e_r][e_c] = new_board[r][c]
+                p1ck, p1cq = False, False
+            else:
+                if move == (0, 4, 0, 6):
+                    new_board[0][6] = p
+                    rook = new_board[0][7]
+                    new_board[0][5] = rook
+                    new_board[0][7] = EMPTY_SQUARE
+                elif move == (0, 4, 0, 2):
+                    new_board[0][2] = p
+                    rook = new_board[0][0]
+                    new_board[0][3] = rook
+                    new_board[0][0] = EMPTY_SQUARE
+                else:
+                    new_board[e_r][e_c] = new_board[r][c]
+                p2ck, p2cq = False, False
+            ####
+            # change castle if needed
+        else:
+            new_board[e_r][e_c] = new_board[r][c]
+            if p[1] == ROOK:
+                if r == 0 and c == 0:
+                    p2cq = False
+                if r == 0 and c == 7:
+                    p2ck = False
+                if r == 7 and c == 0:
+                    p1cq = False
+                if r == 7 and c == 7:
+                    p1ck = False
+
+        new_board[r][c] = EMPTY_SQUARE
         return no_progress, p1ck, p1cq, p2ck, p2cq
 
     def generate_legal_moves(self, reduced_state):
@@ -272,6 +324,36 @@ class ChessBoard(Board):
                     if not self.is_blocked(board, player, (row, col, e_row, e_col)) \
                             and not self.will_cause_check(board, player, (row, col, e_row, e_col)):
                         king_moves.append((row, col, e_row, e_col))
+
+        if not self.king_in_check(board, player):
+            if player == WHITE_PLAYER:
+                if p1ck:
+                    if not self.is_blocked(board, player, (row, col, 7, 5)) \
+                            and not self.will_cause_check(board, player, (row, col, 7, 5)) \
+                            and not self.is_blocked(board, player, (row, col, 7, 6)) \
+                            and not self.will_cause_check(board, player, (row, col, 7, 6)):
+                        king_moves.append((row, col, 7, 6))
+                if p1cq:
+                    if not self.is_blocked(board, player, (row, col, 7, 3)) \
+                            and not self.will_cause_check(board, player, (row, col, 7, 3)) \
+                            and not self.is_blocked(board, player, (row, col, 7, 2)) \
+                            and not self.will_cause_check(board, player, (row, col, 7, 2)) \
+                            and board[7][1] == EMPTY_SQUARE:
+                        king_moves.append((row, col, 7, 2))
+            else:
+                if p2ck:
+                    if not self.is_blocked(board, player, (row, col, 0, 5)) \
+                            and not self.will_cause_check(board, player, (row, col, 0, 5)) \
+                            and not self.is_blocked(board, player, (row, col, 0, 6)) \
+                            and not self.will_cause_check(board, player, (row, col, 0, 6)):
+                        king_moves.append((row, col, 0, 6))
+                if p2cq:
+                    if not self.is_blocked(board, player, (row, col, 0, 3)) \
+                            and not self.will_cause_check(board, player, (row, col, 0, 3)) \
+                            and not self.is_blocked(board, player, (row, col, 0, 2)) \
+                            and not self.will_cause_check(board, player, (row, col, 0, 2)) \
+                            and board[0][1] == EMPTY_SQUARE:
+                        king_moves.append((row, col, 0, 2))
         return king_moves
 
     def copy_board(self, board):
